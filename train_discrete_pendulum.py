@@ -38,15 +38,17 @@ def plot_traj(env, policy, name):
 
     # Simulate until episode is done
     done = False
+    rew = 0 
     while not done:
         
         a = np.argmax(policy[s,:])
 
         (s, r, done) = env.step(a)
+        rew += r
         log['t'].append(log['t'][-1] + 1)
         log['s'].append(s)
         log['a'].append(a)
-        log['r'].append(r)
+        log['r'].append(rew)
         log['theta'].append(env.x[0])
         log['thetadot'].append(env.x[1])
 
@@ -57,7 +59,7 @@ def plot_traj(env, policy, name):
     ax[1].plot(log['t'][:-1], log['a'])
     ax[1].set_ylabel("Action")
     ax[2].plot(log['t'][:-1], log['r'])
-    ax[2].set_ylabel("Reward")
+    ax[2].set_ylabel("Cumulative Reward")
     #ax[0].legend(['s', 'a', 'r'])
     ax[3].plot(log['t'], log['theta'])
     ax[3].plot(log['t'], log['thetadot'])
@@ -68,7 +70,8 @@ def plot_traj(env, policy, name):
     ax[2].set_xticks([])
 
     fig.suptitle("Pendulum: " + str(name) + " Sample Trajectory")
-    
+    fig.savefig('./figures/pendulum/sample_traj_' + str(name) +'.png')
+ 
 def main(): 
 
     env = discrete_pendulum.Pendulum(n_theta=15, n_thetadot=21)
@@ -82,7 +85,7 @@ def main():
     #SARSA
     fig3, ax3 = plt.subplots(2, gridspec_kw={'height_ratios': [2, 1]})
     for j in range(len(E)): 
-        alg = SARSA(env, eps = E[j], alpha = .1, discount = .95)
+        alg = SARSA(env, eps = E[j], alpha = .1, discount = .95, iters = 800)
         Q, r, i, epsilon = alg.train()
         iters = np.linspace(0, i, i)
         
@@ -94,11 +97,14 @@ def main():
     ax3[0].set_ylabel("Avg. Reward")
     ax3[1].set_ylabel(r'$\epsilon$')
     ax3[0].set_xticks([])
+    ax3[0].set_ylim([-20, 60])
+
     fig3.suptitle( 'Pendulum: SARSA '+ r'$\alpha = 0.1$')
-    
+    fig3.savefig('./figures/pendulum/SARSA_eps_training.png')
+
     fig4 = plt.figure() 
     for w in range(len(A)): 
-        alg = SARSA(env, eps = .75, alpha = A[w], discount = .95)
+        alg = SARSA(env, eps = .95, alpha = A[w], discount = .95, iters = 800)
         Q, r, i, epsilon = alg.train()
         iters = np.linspace(0, i, i)
         
@@ -107,31 +113,17 @@ def main():
     plt.legend()
     plt.xlabel("Training Episode")
     plt.ylabel("Avg. Reward")
-    plt.title( 'Gridworld: SARSA '+ r'$\epsilon = 0.75$')
-    
-    
-    fig4 = plt.figure() 
-    for w in range(len(A)): 
-        alg = SARSA(env, eps = .95, alpha = A[w], discount = .95)
-        Q, r, i, epsilon = alg.train()
-        iters = np.linspace(0, i, i)
-        
-        plt.plot(iters, r, label = r"$\alpha$ = " + str(A[w]))
-        
-    plt.legend()
-    plt.xlabel("Training Episode")
-    plt.ylabel("Avg. Reward")
-    plt.title( 'Pendulum: SARSA '+ r'$\epsilon = 0.75$')
-    
-    
-    
-    
-    alg = SARSA(env, eps = 0.95, alpha = .01, discount = .95)
+    plt.ylim([-20, 60])
+    plt.title( 'Pendulum: SARSA '+ r'$\epsilon = 0.95$')
+    fig3.savefig('./figures/pendulum/SARSA_alpha_training.png')
+
+
+    alg = SARSA(env, eps = 0.95, alpha = .1, discount = .95, iters = 800)
     
     Q_SARSA, r, i, SARSA_eps = alg.train()
     plot_traj(env, Q_SARSA, "SARSA")
     
-    TD_SARSA = TD0(env, policy = Q_SARSA, alpha = .01, discount = 0.95)
+    TD_SARSA = TD0(env, policy = Q_SARSA, alpha = .1, discount = 0.95)
     SARSA_value = TD_SARSA.train()
     
     states = np.linspace(0, env.num_states, env.num_states)
@@ -141,7 +133,7 @@ def main():
     fig6, ax6 = plt.subplots(2, gridspec_kw={'height_ratios': [2, 1]})
     
     for j in range(len(E)): 
-        alg = Q_learning(env, eps = E[j], alpha = .1, discount = .95)
+        alg = Q_learning(env, eps = E[j], alpha = .1, discount = .95, iters = 800)
         Q, r, i, epsilon = alg.train()
         iters = np.linspace(0, i, i)
         
@@ -153,12 +145,16 @@ def main():
     ax6[0].set_ylabel("Return")
     ax6[1].set_ylabel(r'$\epsilon$')
     ax6[0].set_xticks([])
+    ax6[0].set_ylim([-20, 60])
+
     fig6.suptitle( 'Pendulum: Q-Learning '+ r'$\alpha = 0.1$')
-    
+    fig3.savefig('./figures/pendulum/Q_eps_training.png')
+
+
     Q_alpha_plot = plt.figure()
     
     for w in range(len(A)): 
-        alg = Q_learning(env, eps = .95, alpha = A[w], discount = .95)
+        alg = Q_learning(env, eps = .95, alpha = A[w], discount = .95, iters = 800)
         Q, r, i, epsilon = alg.train()
         iters = np.linspace(0, i, i)
         
@@ -167,15 +163,17 @@ def main():
     plt.legend()
     plt.xlabel("Training Episode")
     plt.ylabel("Return")
-    plt.title( 'Pendulum: Q-Learning '+ r'$\epsilon = 0.75$')
-    
-    alg = Q_learning(env, eps = .75, alpha = .01, discount = 0.95)
+    plt.ylim([-20, 70])
+    plt.title( 'Pendulum: Q-Learning '+ r'$\epsilon = 0.95$')
+    plt.savefig('./figures/pendulum/Q_alpha_training.png')
+
+    alg = Q_learning(env, eps = .95, alpha = .1, discount = 0.95, iters = 800)
     Q_learn, r, i, Q_eps = alg.train()
     
 
     plot_traj(env, Q_learn, "Q-Learning")
     
-    TD_Q = TD0(env, policy = Q_learn, alpha = .01, discount = 0.95)
+    TD_Q = TD0(env, policy = Q_learn, alpha = .1, discount = 0.95)
     Q_value = TD_Q.train()
     
     states = np.linspace(0, env.num_states, env.num_states)
@@ -200,7 +198,8 @@ def main():
     plt.xlabel('State')
     plt.ylabel('Action')
     plt.title('Pendulum: Policies')
-    
+    plt.savefig('./figures/pendulum/Policies.png')
+
     #Plotting value functions
     Values = plt.figure()
     plt.scatter(states, SARSA_value,  color = 'green', marker = '.', label = "SARSA")
@@ -209,7 +208,8 @@ def main():
     plt.xlabel('State')
     plt.ylabel('Value')
     plt.title("Pendulum: Value Functions")
-    
+    plt.savefig('./figures/pendulum/ValueFunc.png')
+
     return 
     
     

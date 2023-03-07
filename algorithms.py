@@ -117,9 +117,7 @@ class ValueIteration():
         #estimation accuracy
         self.theta = theta
         
-        #initialize V -- set terminal state value to zero 
-        #self.V = np.random.random_sample(size = self.obs_space)
-        #self.V[-1] = 0.0
+        #initialize V 
         self.V = np.zeros(self.obs_space)
         return 
     
@@ -197,10 +195,13 @@ class ValueIteration():
         return iters,self.V,  mean_value, pi, deltas
 
 class SARSA(): 
-    def __init__(self, env, eps, alpha, discount): 
+    def __init__(self, env, eps, alpha, discount, iters): 
         self.eps = eps 
         self.alpha = alpha
         self.discount = discount
+        
+        #number of episodes to train for
+        self.iters = iters
         
         self.env = env
         self.obs_space = env.num_states
@@ -226,8 +227,7 @@ class SARSA():
         #initialize Q
         Q = np.zeros([self.obs_space, self.action_space])
         
-        #number of episodes to train for
-        iters = 300 
+         
         
         #set epsilon decay parameters
         decay = .99 
@@ -235,7 +235,7 @@ class SARSA():
         epsilon = []
         
         rew = []
-        for i in range(iters): 
+        for i in range(self.iters): 
             #initialize state
             s = self.env.reset()
             
@@ -260,17 +260,20 @@ class SARSA():
              
             rew.append(np.sum(r_ep))
             i += 1
+            if i % 10 == 0: 
+                #decay epsilon every 10 iterations
+                self.eps = np.max([min_eps, self.eps*decay])
             
-            #decay epsilon
-            self.eps = np.max([min_eps, self.eps*decay])
-            
-        return Q, rew, iters, epsilon
+        return Q, rew, i, epsilon
     
 class Q_learning(): 
-    def __init__(self, env, eps, alpha, discount): 
+    def __init__(self, env, eps, alpha, discount, iters): 
         self.eps = eps 
         self.alpha = alpha
         self.discount = discount
+        
+        #training iterations
+        self.iters =iters
         
         self.env = env
         self.obs_space = env.num_states
@@ -287,12 +290,11 @@ class Q_learning():
         return a 
     
     def update(self, s, a, s_new, r, Q): 
-        new_Q = Q[s,a] + self.alpha*(r + self.discount*np.argmax(Q[s_new, :])-Q[s,a])
+        new_Q = Q[s,a] + self.alpha*(r + self.discount*np.max(Q[s_new, :])-Q[s,a])
         return new_Q
     
     def train(self):
-        #training iterations
-        iters =300
+        
         
         #epsilone decay parameters
         decay = .99
@@ -303,7 +305,7 @@ class Q_learning():
         Q = np.zeros([self.obs_space, self.action_space])
         
         rew = []
-        for i in range(iters): 
+        for i in range(self.iters): 
             #Initialize state
             s = self.env.reset()
             
@@ -325,10 +327,10 @@ class Q_learning():
                 
             rew.append(np.sum(r_ep))
             i += 1 
-            
-            self.eps = np.max([min_eps, self.eps*decay])
+            if i % 10 == 0: 
+                self.eps = np.max([min_eps, self.eps*decay])
                 
-        return Q, rew, iters, epsilon
+        return Q, rew, i, epsilon
     
 class TD0(): 
     def __init__(self, env, policy, alpha, discount):
@@ -350,7 +352,7 @@ class TD0():
         #Initialize V
         V = np.zeros(self.obs_space)
         
-        for i in range(100): 
+        for i in range(300): 
             #initialize state
             s = self.env.reset()
             done = False 
